@@ -1,0 +1,48 @@
+# Walkthrough: Indonesian Sociolinguistics Classifier
+
+## What Was Built
+A 3-class text classifier for Indonesian sociolinguistic varieties: **Alay/Slang**, **Jaksel (Indonglish)**, and **Bahasa Baku (formal)**.
+
+## Files Created
+
+| File | Purpose |
+|------|---------|
+| [clean_alay.py](file:///d:/School%20Stuff/Pradita%20University/SEM%206/nlp/week5%20-%20sociolinguistics/clean_alay.py) | Cleans slang corpus → `alay_cleaned.csv` (4,877 rows) |
+| [clean_jaksel.py](file:///d:/School%20Stuff/Pradita%20University/SEM%206/nlp/week5%20-%20sociolinguistics/clean_jaksel.py) | Cleans Indonglish tweets → `jaksel_cleaned.csv` (5,065 rows) |
+| [eyd_template.csv](file:///d:/School%20Stuff/Pradita%20University/SEM%206/nlp/week5%20-%20sociolinguistics/eyd_template.csv) | Blank EYD template (text,label) |
+| [eda.py](file:///d:/School%20Stuff/Pradita%20University/SEM%206/nlp/week5%20-%20sociolinguistics/eda.py) | EDA with 7 plots → `eda_output/` |
+| [model.py](file:///d:/School%20Stuff/Pradita%20University/SEM%206/nlp/week5%20-%20sociolinguistics/model.py) | Trains & evaluates 3 models |
+| [README.md](file:///d:/School%20Stuff/Pradita%20University/SEM%206/nlp/week5%20-%20sociolinguistics/README.md) | Progress tracker |
+
+## Key Results
+
+### EDA
+- Alay texts are shorter (avg 12 words) — social media comments with abbreviations
+- Jaksel texts are longer (avg 18 words) — tweets mixing English (24.4% ratio)
+- Top slang category: **abreviasi** (abbreviation) with 7,162 examples
+
+### Model Performance
+Best: **Logistic Regression** on char n-gram TF-IDF → **90.89% accuracy**
+
+| Class | Precision | Recall | F1 |
+|-------|-----------|--------|-----|
+| Alay | 0.90 | 0.83 | 0.86 |
+| Baku | 0.85 | 0.92 | 0.88 |
+| **Jaksel** | **0.98** | **0.97** | **0.98** |
+
+### Demo Classifications
+```
+[  alay] gw bgt lah, emg gk bsa tidur smpe pagi
+[  alay] kk cantik bgt ya, sukses slalu
+[jaksel] Literally gue tuh lagi overthinking banget deh
+[jaksel] So basically dia tuh toxic banget, I can't even
+[  baku] Pemerintah telah menetapkan kebijakan baru mengenai kesehatan masyarakat.
+[  baku] Pendidikan merupakan fondasi utama dalam pembangunan karakter bangsa.
+```
+
+## Baku Data Strategy
+Since no EYD dataset was available yet, baku samples were created by:
+1. Taking alay context sentences and replacing slang words with their formal equivalents using the slang dictionary
+2. Adding 30 hand-written formal Indonesian sentences
+
+When the real EYD dataset is added, the model should be retrained for better baku precision.
