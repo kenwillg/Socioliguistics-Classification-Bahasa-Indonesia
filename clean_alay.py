@@ -7,6 +7,10 @@ import pandas as pd
 import re
 import os
 
+SOURCE_DIR = 'source-data'
+OUTPUT_DIR = 'cleaned-data'
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 def clean_text(text):
     """Clean a single text string."""
     if not isinstance(text, str):
@@ -29,7 +33,7 @@ def main():
     print("=" * 60)
 
     # Load raw data
-    df = pd.read_csv('colloquial-indonesian-lexicon.csv')
+    df = pd.read_csv(os.path.join(SOURCE_DIR, 'colloquial-indonesian-lexicon.csv'))
     print(f"\nRaw dataset shape: {df.shape}")
     print(f"Columns: {list(df.columns)}")
     print(f"\nSample rows:")
@@ -69,12 +73,12 @@ def main():
     
     # Save the slang-to-formal dictionary
     slang_dict = df[['slang', 'formal']].dropna().drop_duplicates()
-    slang_dict.to_csv('slang_dictionary.csv', index=False)
-    print(f"Saved slang dictionary: {len(slang_dict)} entries -> slang_dictionary.csv")
+    slang_dict.to_csv(os.path.join(OUTPUT_DIR, 'slang_dictionary.csv'), index=False)
+    print(f"Saved slang dictionary: {len(slang_dict)} entries -> {OUTPUT_DIR}/slang_dictionary.csv")
 
     # Save cleaned alay dataset
-    alay_df.to_csv('alay_cleaned.csv', index=False)
-    print(f"\nSaved: alay_cleaned.csv ({len(alay_df)} rows)")
+    alay_df.to_csv(os.path.join(OUTPUT_DIR, 'alay_cleaned.csv'), index=False)
+    print(f"\nSaved: {OUTPUT_DIR}/alay_cleaned.csv ({len(alay_df)} rows)")
     
     # --- Stats ---
     print("\n--- Quick Stats ---")
@@ -85,8 +89,8 @@ def main():
     
     # --- Also export slang categories for EDA ---
     categories = df[['slang', 'formal', 'category1', 'category2', 'category3']].copy()
-    categories.to_csv('alay_categories.csv', index=False)
-    print(f"\nSaved category metadata: alay_categories.csv")
+    categories.to_csv(os.path.join(OUTPUT_DIR, 'alay_categories.csv'), index=False)
+    print(f"\nSaved category metadata: {OUTPUT_DIR}/alay_categories.csv")
     
     print("\n" + "=" * 60)
     print("DONE!")

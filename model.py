@@ -1,12 +1,11 @@
 """
 Indonesian Sociolinguistics Text Classifier
-3-class classification: Bahasa Baku (formal), Alay/Slang, Jaksel (Indonglish)
+3-class classification: EYD (Formal), Alay/Slang, Jaksel (Indonglish)
 
 Strategy:
+  - EYD samples: formal Indonesian sentences from Tere Liye's novel "Tentang Kamu"
   - Alay samples: context sentences from colloquial lexicon (contain slang)
   - Jaksel samples: code-switched tweets (Indonesian-English mix)
-  - Baku samples: formal Indonesian words/phrases from the slang dictionary's
-    'formal' column, supplemented by reconstructing clean sentences
 """
 
 import pandas as pd
@@ -30,6 +29,7 @@ warnings.filterwarnings('ignore')
 # ── Config ──────────────────────────────────────────────────
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
+DATA_DIR = 'cleaned-data'
 
 # ── Load Data ───────────────────────────────────────────────
 print("=" * 60)
@@ -37,97 +37,35 @@ print("INDONESIAN SOCIOLINGUISTICS CLASSIFIER")
 print("=" * 60)
 
 # Load cleaned datasets
-alay_df = pd.read_csv('alay_cleaned.csv')
-jaksel_df = pd.read_csv('jaksel_cleaned.csv')
-slang_dict = pd.read_csv('slang_dictionary.csv')
+eyd_df = pd.read_csv(os.path.join(DATA_DIR, 'eyd_cleaned.csv'))
+alay_df = pd.read_csv(os.path.join(DATA_DIR, 'alay_cleaned.csv'))
+jaksel_df = pd.read_csv(os.path.join(DATA_DIR, 'jaksel_cleaned.csv'))
 
 print(f"\nLoaded:")
-print(f"  Alay samples:  {len(alay_df)}")
+print(f"  EYD samples:    {len(eyd_df)}")
+print(f"  Alay samples:   {len(alay_df)}")
 print(f"  Jaksel samples: {len(jaksel_df)}")
-print(f"  Slang dictionary: {len(slang_dict)} entries")
 
 
 # ══════════════════════════════════════════════════════════════
-# STEP 1: CREATE BAHASA BAKU SAMPLES
+# STEP 1: PREPARE DATASETS
 # ══════════════════════════════════════════════════════════════
-print("\n--- Creating Bahasa Baku (formal) samples ---")
+print("\n--- Preparing datasets ---")
 
-# Strategy: take the alay context sentences and replace all slang words 
-# with their formal equivalents to create "baku" versions of the same texts.
-# This gives us paired data: alay original → baku corrected
+# Ensure consistent columns
+eyd_df = eyd_df[['text', 'label']].dropna().drop_duplicates(subset=['text'])
+alay_df = alay_df[['text', 'label']].dropna().drop_duplicates(subset=['text'])
+jaksel_df = jaksel_df[['text', 'label']].dropna().drop_duplicates(subset=['text'])
 
-# Build slang→formal lookup (take most common formal per slang)
-slang_to_formal = {}
-for _, row in slang_dict.iterrows():
-    slang_word = str(row['slang']).lower().strip()
-    formal_word = str(row['formal']).lower().strip()
-    if slang_word and formal_word and slang_word != 'nan' and formal_word != 'nan':
-        slang_to_formal[slang_word] = formal_word
+# Filter very short texts
+eyd_df = eyd_df[eyd_df['text'].str.len() >= 5].reset_index(drop=True)
+alay_df = alay_df[alay_df['text'].str.len() >= 5].reset_index(drop=True)
+jaksel_df = jaksel_df[jaksel_df['text'].str.len() >= 5].reset_index(drop=True)
 
-print(f"  Slang→Formal lookup: {len(slang_to_formal)} mappings")
-
-def convert_to_baku(text):
-    """Replace slang words with formal equivalents."""
-    if not isinstance(text, str):
-        return ""
-    words = text.lower().split()
-    result = []
-    for w in words:
-        # Strip punctuation for lookup
-        clean_w = re.sub(r'[^\w]', '', w)
-        if clean_w in slang_to_formal:
-            result.append(slang_to_formal[clean_w])
-        else:
-            result.append(w.lower())
-    return ' '.join(result)
-
-# Convert alay texts to baku
-baku_texts = alay_df['text'].apply(convert_to_baku)
-
-# Remove baku texts that are identical to alay (no slang was replaced)
-# and remove very short texts
-baku_df = pd.DataFrame({'text': baku_texts, 'label': 'baku'})
-baku_df = baku_df[baku_df['text'].str.len() >= 5]
-
-# Also add some purely formal sentences from common Indonesian formal phrases
-formal_phrases = [
-    "Dengan hormat, saya bermaksud menyampaikan surat ini.",
-    "Berdasarkan hasil rapat yang telah dilaksanakan.",
-    "Sehubungan dengan hal tersebut di atas.",
-    "Demikian surat ini dibuat untuk dapat dipergunakan sebagaimana mestinya.",
-    "Atas perhatian dan kerjasamanya, kami ucapkan terima kasih.",
-    "Pada kesempatan ini, kami ingin menyampaikan beberapa hal penting.",
-    "Sesuai dengan peraturan yang berlaku, kami mohon perhatian.",
-    "Dengan ini kami sampaikan laporan kegiatan bulan ini.",
-    "Berkenaan dengan undangan yang telah disampaikan.",
-    "Kami mengharapkan kehadiran Bapak atau Ibu pada acara tersebut.",
-    "Pemerintah telah menetapkan kebijakan baru mengenai pendidikan.",
-    "Indonesia merupakan negara kepulauan yang memiliki kekayaan alam.",
-    "Pembangunan infrastruktur terus dilakukan untuk kemajuan bangsa.",
-    "Pendidikan merupakan kunci utama dalam membangun sumber daya manusia.",
-    "Kegiatan ini bertujuan untuk meningkatkan kesadaran masyarakat.",
-    "Setiap warga negara memiliki hak dan kewajiban yang sama.",
-    "Semoga kegiatan ini dapat berjalan dengan lancar dan sukses.",
-    "Masyarakat diimbau untuk menjaga kebersihan lingkungan sekitar.",
-    "Pelaksanaan program ini memerlukan kerjasama dari berbagai pihak.",
-    "Kami berharap dapat memberikan pelayanan yang terbaik kepada masyarakat.",
-    "Ilmu pengetahuan dan teknologi berkembang dengan sangat pesat.",
-    "Kesehatan merupakan hal yang sangat penting dalam kehidupan.",
-    "Pertumbuhan ekonomi Indonesia menunjukkan tren positif tahun ini.",
-    "Keanekaragaman budaya Indonesia menjadi kekayaan yang harus dijaga.",
-    "Program kerja yang telah disusun akan segera dilaksanakan.",
-    "Seluruh peserta diharapkan dapat mengikuti kegiatan dengan tertib.",
-    "Laporan keuangan telah disusun sesuai dengan standar akuntansi.",
-    "Hasil penelitian menunjukkan adanya peningkatan yang signifikan.",
-    "Pihak berwenang telah mengambil tindakan yang diperlukan.",
-    "Kerja sama antara kedua belah pihak diharapkan dapat terjalin.",
-]
-formal_addition = pd.DataFrame({'text': formal_phrases, 'label': 'baku'})
-baku_df = pd.concat([baku_df, formal_addition], ignore_index=True)
-
-# Deduplicate
-baku_df = baku_df.drop_duplicates(subset=['text']).reset_index(drop=True)
-print(f"  Baku samples created: {len(baku_df)}")
+print(f"  After cleaning:")
+print(f"  EYD:    {len(eyd_df)}")
+print(f"  Alay:   {len(alay_df)}")
+print(f"  Jaksel: {len(jaksel_df)}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -135,21 +73,16 @@ print(f"  Baku samples created: {len(baku_df)}")
 # ══════════════════════════════════════════════════════════════
 print("\n--- Combining datasets ---")
 
-# Check class sizes
-print(f"  Alay: {len(alay_df)}")
-print(f"  Jaksel: {len(jaksel_df)}")
-print(f"  Baku: {len(baku_df)}")
-
 # Balance by downsampling to the smallest class size
-min_size = min(len(alay_df), len(jaksel_df), len(baku_df))
+min_size = min(len(eyd_df), len(alay_df), len(jaksel_df))
 print(f"  Balancing to: {min_size} samples per class")
 
+eyd_balanced = eyd_df.sample(n=min_size, random_state=RANDOM_STATE)
 alay_balanced = alay_df.sample(n=min_size, random_state=RANDOM_STATE)
 jaksel_balanced = jaksel_df.sample(n=min_size, random_state=RANDOM_STATE)
-baku_balanced = baku_df.sample(n=min_size, random_state=RANDOM_STATE)
 
 # Combine
-combined_df = pd.concat([alay_balanced, jaksel_balanced, baku_balanced], ignore_index=True)
+combined_df = pd.concat([eyd_balanced, alay_balanced, jaksel_balanced], ignore_index=True)
 combined_df = combined_df.sample(frac=1, random_state=RANDOM_STATE).reset_index(drop=True)
 
 print(f"  Combined dataset: {len(combined_df)} total samples")
@@ -244,14 +177,16 @@ for name, res in results.items():
 print(f"\nBest Model: {best_name}")
 
 # Detailed report for best model
+target_names = ['alay', 'eyd', 'jaksel']
 print(f"\n--- Classification Report ({best_name}) ---")
 print(classification_report(y_test, best_result['y_pred'], 
-                           target_names=['alay', 'baku', 'jaksel'],
+                           target_names=target_names,
                            digits=4))
 
 print(f"--- Confusion Matrix ({best_name}) ---")
-cm = confusion_matrix(y_test, best_result['y_pred'], labels=['alay', 'baku', 'jaksel'])
-cm_df = pd.DataFrame(cm, index=['alay', 'baku', 'jaksel'], columns=['pred_alay', 'pred_baku', 'pred_jaksel'])
+cm = confusion_matrix(y_test, best_result['y_pred'], labels=target_names)
+cm_df = pd.DataFrame(cm, index=target_names, 
+                     columns=[f'pred_{t}' for t in target_names])
 print(cm_df.to_string())
 
 
@@ -263,7 +198,7 @@ print("\n--- Saving Best Model ---")
 model_data = {
     'model': best_result['model'],
     'vectorizer': tfidf,
-    'classes': ['alay', 'baku', 'jaksel'],
+    'classes': target_names,
     'best_model_name': best_name,
     'accuracy': best_result['accuracy'],
 }
@@ -292,10 +227,14 @@ demo_texts = [
     "So basically dia tuh toxic banget, I can't even",
     "Ngl sih healing kemarin vibes nya on point banget",
     
-    # Baku (Formal)
+    # EYD (Formal)
     "Pemerintah telah menetapkan kebijakan baru mengenai kesehatan masyarakat.",
     "Dengan hormat, kami sampaikan undangan untuk menghadiri acara tersebut.",
     "Pendidikan merupakan fondasi utama dalam pembangunan karakter bangsa.",
+    
+    # Additional EYD-style (literary)
+    "Zaman menghela nafas panjang, menatap keluar jendela kantor.",
+    "Mereka berdua mengenal satu sama lain dengan baik lewat rangkaian percakapan pendek.",
 ]
 
 best_model = best_result['model']
@@ -329,7 +268,7 @@ print(f"  Word-level LR Accuracy: {acc_word:.4f}")
 print(f"  (vs char n-gram best: {best_result['accuracy']:.4f})")
 
 print(classification_report(y_test, y_pred_word,
-                           target_names=['alay', 'baku', 'jaksel'],
+                           target_names=target_names,
                            digits=4))
 
 

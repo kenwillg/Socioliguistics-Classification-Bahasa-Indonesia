@@ -1,6 +1,6 @@
 """
 Exploratory Data Analysis for Indonesian Sociolinguistics Datasets
-Analyzes: alay_cleaned.csv, jaksel_cleaned.csv, alay_categories.csv
+Analyzes: eyd_cleaned.csv, alay_cleaned.csv, jaksel_cleaned.csv, alay_categories.csv
 """
 
 import pandas as pd
@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 # ── Config ──────────────────────────────────────────────────────
+DATA_DIR = 'cleaned-data'
 OUTPUT_DIR = 'eda_output'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 plt.rcParams.update({
@@ -23,17 +24,19 @@ plt.rcParams.update({
     'axes.labelsize': 12,
 })
 COLORS = {
+    'eyd': '#45B7D1',
     'alay': '#FF6B6B',
     'jaksel': '#4ECDC4',
-    'baku': '#45B7D1',
 }
 
 # ── Load Data ───────────────────────────────────────────────────
 print("Loading datasets...")
-alay_df = pd.read_csv('alay_cleaned.csv')
-jaksel_df = pd.read_csv('jaksel_cleaned.csv')
-categories_df = pd.read_csv('alay_categories.csv')
+eyd_df = pd.read_csv(os.path.join(DATA_DIR, 'eyd_cleaned.csv'))
+alay_df = pd.read_csv(os.path.join(DATA_DIR, 'alay_cleaned.csv'))
+jaksel_df = pd.read_csv(os.path.join(DATA_DIR, 'jaksel_cleaned.csv'))
+categories_df = pd.read_csv(os.path.join(DATA_DIR, 'alay_categories.csv'))
 
+print(f"EYD dataset: {len(eyd_df)} rows")
 print(f"Alay dataset: {len(alay_df)} rows")
 print(f"Jaksel dataset: {len(jaksel_df)} rows")
 print(f"Categories metadata: {len(categories_df)} rows")
@@ -100,7 +103,13 @@ print("\n" + "=" * 60)
 print("1. BASIC STATISTICS")
 print("=" * 60)
 
-for name, df in [('Alay/Slang', alay_df), ('Jaksel/Indonglish', jaksel_df)]:
+all_datasets = [
+    ('EYD (Formal)', eyd_df),
+    ('Alay/Slang', alay_df),
+    ('Jaksel/Indonglish', jaksel_df),
+]
+
+for name, df in all_datasets:
     df['text_len'] = df['text'].astype(str).str.len()
     df['word_count'] = df['text'].astype(str).str.split().str.len()
     df['special_ratio'] = df['text'].apply(count_special_chars)
@@ -119,21 +128,20 @@ for name, df in [('Alay/Slang', alay_df), ('Jaksel/Indonglish', jaksel_df)]:
 # ══════════════════════════════════════════════════════════════
 print("\n2. Generating text length distribution plots...")
 
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-axes[0].hist(alay_df['text_len'], bins=50, color=COLORS['alay'], alpha=0.85, edgecolor='white')
-axes[0].set_title('Alay/Slang — Text Length Distribution')
-axes[0].set_xlabel('Character Count')
-axes[0].set_ylabel('Frequency')
-axes[0].axvline(alay_df['text_len'].median(), color='black', linestyle='--', label=f"Median: {alay_df['text_len'].median():.0f}")
-axes[0].legend()
-
-axes[1].hist(jaksel_df['text_len'], bins=50, color=COLORS['jaksel'], alpha=0.85, edgecolor='white')
-axes[1].set_title('Jaksel/Indonglish — Text Length Distribution')
-axes[1].set_xlabel('Character Count')
-axes[1].set_ylabel('Frequency')
-axes[1].axvline(jaksel_df['text_len'].median(), color='black', linestyle='--', label=f"Median: {jaksel_df['text_len'].median():.0f}")
-axes[1].legend()
+for ax, (name, df, key) in zip(axes, [
+    ('EYD (Formal)', eyd_df, 'eyd'),
+    ('Alay/Slang', alay_df, 'alay'),
+    ('Jaksel/Indonglish', jaksel_df, 'jaksel'),
+]):
+    ax.hist(df['text_len'], bins=50, color=COLORS[key], alpha=0.85, edgecolor='white')
+    ax.set_title(f'{name} — Text Length Distribution')
+    ax.set_xlabel('Character Count')
+    ax.set_ylabel('Frequency')
+    ax.axvline(df['text_len'].median(), color='black', linestyle='--',
+               label=f"Median: {df['text_len'].median():.0f}")
+    ax.legend()
 
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/01_text_length_distribution.png', dpi=150, bbox_inches='tight')
@@ -146,17 +154,17 @@ print("  → Saved 01_text_length_distribution.png")
 # ══════════════════════════════════════════════════════════════
 print("\n3. Generating word count distribution plots...")
 
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-axes[0].hist(alay_df['word_count'], bins=40, color=COLORS['alay'], alpha=0.85, edgecolor='white')
-axes[0].set_title('Alay/Slang — Word Count Distribution')
-axes[0].set_xlabel('Word Count')
-axes[0].set_ylabel('Frequency')
-
-axes[1].hist(jaksel_df['word_count'], bins=40, color=COLORS['jaksel'], alpha=0.85, edgecolor='white')
-axes[1].set_title('Jaksel/Indonglish — Word Count Distribution')
-axes[1].set_xlabel('Word Count')
-axes[1].set_ylabel('Frequency')
+for ax, (name, df, key) in zip(axes, [
+    ('EYD (Formal)', eyd_df, 'eyd'),
+    ('Alay/Slang', alay_df, 'alay'),
+    ('Jaksel/Indonglish', jaksel_df, 'jaksel'),
+]):
+    ax.hist(df['word_count'], bins=40, color=COLORS[key], alpha=0.85, edgecolor='white')
+    ax.set_title(f'{name} — Word Count Distribution')
+    ax.set_xlabel('Word Count')
+    ax.set_ylabel('Frequency')
 
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/02_word_count_distribution.png', dpi=150, bbox_inches='tight')
@@ -169,16 +177,17 @@ print("  → Saved 02_word_count_distribution.png")
 # ══════════════════════════════════════════════════════════════
 print("\n4. Generating word frequency plots...")
 
-fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+fig, axes = plt.subplots(1, 3, figsize=(20, 8))
 
-for ax, (name, df, color) in zip(axes, [
-    ('Alay/Slang', alay_df, COLORS['alay']),
-    ('Jaksel/Indonglish', jaksel_df, COLORS['jaksel']),
+for ax, (name, df, key) in zip(axes, [
+    ('EYD (Formal)', eyd_df, 'eyd'),
+    ('Alay/Slang', alay_df, 'alay'),
+    ('Jaksel/Indonglish', jaksel_df, 'jaksel'),
 ]):
     freq = get_word_freq(df['text'], top_n=25)
     words, counts = zip(*freq)
     y_pos = range(len(words))
-    ax.barh(y_pos, counts, color=color, alpha=0.85, edgecolor='white')
+    ax.barh(y_pos, counts, color=COLORS[key], alpha=0.85, edgecolor='white')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(words)
     ax.invert_yaxis()
@@ -241,28 +250,30 @@ print("  → Saved 05_jaksel_english_ratio.png")
 
 
 # ══════════════════════════════════════════════════════════════
-# 7. COMPARISON BOXPLOT
+# 7. COMPARISON BOXPLOT (all 3 classes)
 # ══════════════════════════════════════════════════════════════
 print("\n7. Generating comparison plots...")
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 # Text length comparison
-data_len = [alay_df['text_len'], jaksel_df['text_len']]
-bp1 = axes[0].boxplot(data_len, labels=['Alay/Slang', 'Jaksel'], 
+data_len = [eyd_df['text_len'], alay_df['text_len'], jaksel_df['text_len']]
+bp1 = axes[0].boxplot(data_len, labels=['EYD', 'Alay/Slang', 'Jaksel'], 
                        patch_artist=True, widths=0.5)
-bp1['boxes'][0].set_facecolor(COLORS['alay'])
-bp1['boxes'][1].set_facecolor(COLORS['jaksel'])
-axes[0].set_title('Text Length Comparison')
+bp1['boxes'][0].set_facecolor(COLORS['eyd'])
+bp1['boxes'][1].set_facecolor(COLORS['alay'])
+bp1['boxes'][2].set_facecolor(COLORS['jaksel'])
+axes[0].set_title('Text Length Comparison (3 Classes)')
 axes[0].set_ylabel('Character Count')
 
 # Word count comparison
-data_wc = [alay_df['word_count'], jaksel_df['word_count']]
-bp2 = axes[1].boxplot(data_wc, labels=['Alay/Slang', 'Jaksel'],
+data_wc = [eyd_df['word_count'], alay_df['word_count'], jaksel_df['word_count']]
+bp2 = axes[1].boxplot(data_wc, labels=['EYD', 'Alay/Slang', 'Jaksel'],
                        patch_artist=True, widths=0.5)
-bp2['boxes'][0].set_facecolor(COLORS['alay'])
-bp2['boxes'][1].set_facecolor(COLORS['jaksel'])
-axes[1].set_title('Word Count Comparison')
+bp2['boxes'][0].set_facecolor(COLORS['eyd'])
+bp2['boxes'][1].set_facecolor(COLORS['alay'])
+bp2['boxes'][2].set_facecolor(COLORS['jaksel'])
+axes[1].set_title('Word Count Comparison (3 Classes)')
 axes[1].set_ylabel('Word Count')
 
 plt.tight_layout()
@@ -277,21 +288,17 @@ print("  → Saved 06_comparison_boxplot.png")
 print("\n8. Generating dataset overview...")
 
 fig, ax = plt.subplots(figsize=(8, 5))
-datasets = ['Alay/Slang', 'Jaksel/Indonglish', 'EYD (TBD)']
-sizes = [len(alay_df), len(jaksel_df), 0]
-colors = [COLORS['alay'], COLORS['jaksel'], '#CCCCCC']
+datasets = ['EYD (Formal)', 'Alay/Slang', 'Jaksel/Indonglish']
+sizes = [len(eyd_df), len(alay_df), len(jaksel_df)]
+colors = [COLORS['eyd'], COLORS['alay'], COLORS['jaksel']]
 bars = ax.bar(datasets, sizes, color=colors, alpha=0.85, edgecolor='white', width=0.5)
-ax.set_title('Dataset Sizes')
+ax.set_title('Dataset Sizes (3 Classes)')
 ax.set_ylabel('Number of Samples')
 
 # Add count labels on bars
 for bar, size in zip(bars, sizes):
-    if size > 0:
-        ax.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 50,
-                f'{size:,}', ha='center', va='bottom', fontweight='bold')
-    else:
-        ax.text(bar.get_x() + bar.get_width()/2., 100,
-                'Pending', ha='center', va='bottom', fontweight='bold', color='gray')
+    ax.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 50,
+            f'{size:,}', ha='center', va='bottom', fontweight='bold')
 
 plt.tight_layout()
 plt.savefig(f'{OUTPUT_DIR}/07_dataset_sizes.png', dpi=150, bbox_inches='tight')
@@ -300,16 +307,56 @@ print("  → Saved 07_dataset_sizes.png")
 
 
 # ══════════════════════════════════════════════════════════════
-# 9. SAMPLE TEXTS
+# 9. EYD SENTENCE LENGTH DISTRIBUTION
 # ══════════════════════════════════════════════════════════════
-print("\n9. Sample texts from each dataset:")
+print("\n9. EYD-specific analysis...")
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Sentence length distribution for EYD
+axes[0].hist(eyd_df['text_len'], bins=60, color=COLORS['eyd'], alpha=0.85, edgecolor='white')
+axes[0].set_title('EYD — Sentence Length Distribution')
+axes[0].set_xlabel('Character Count')
+axes[0].set_ylabel('Frequency')
+axes[0].axvline(eyd_df['text_len'].median(), color='black', linestyle='--',
+               label=f"Median: {eyd_df['text_len'].median():.0f}")
+axes[0].legend()
+
+# English ratio comparison across all 3 classes
+eyd_df['eng_ratio'] = eyd_df['text'].apply(count_english_words)
+alay_df['eng_ratio'] = alay_df['text'].apply(count_english_words)
+
+eng_data = [eyd_df['eng_ratio'], alay_df['eng_ratio'], jaksel_df['eng_ratio']]
+bp3 = axes[1].boxplot(eng_data, labels=['EYD', 'Alay', 'Jaksel'],
+                       patch_artist=True, widths=0.5)
+bp3['boxes'][0].set_facecolor(COLORS['eyd'])
+bp3['boxes'][1].set_facecolor(COLORS['alay'])
+bp3['boxes'][2].set_facecolor(COLORS['jaksel'])
+axes[1].set_title('English Word Ratio Comparison')
+axes[1].set_ylabel('English Word Ratio')
+
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/08_eyd_analysis.png', dpi=150, bbox_inches='tight')
+plt.close()
+print("  → Saved 08_eyd_analysis.png")
+
+
+# ══════════════════════════════════════════════════════════════
+# 10. SAMPLE TEXTS
+# ══════════════════════════════════════════════════════════════
+print("\n10. Sample texts from each dataset:")
+
+print("\n--- EYD (Formal) Samples ---")
+for i, row in eyd_df.sample(5, random_state=42).iterrows():
+    print(f"  [{i}] {row['text'][:120]}...")
+
 print("\n--- Alay/Slang Samples ---")
 for i, row in alay_df.sample(5, random_state=42).iterrows():
-    print(f"  [{i}] {row['text'][:100]}...")
+    print(f"  [{i}] {row['text'][:120]}...")
 
 print("\n--- Jaksel/Indonglish Samples ---")
 for i, row in jaksel_df.sample(5, random_state=42).iterrows():
-    print(f"  [{i}] {row['text'][:100]}...")
+    print(f"  [{i}] {row['text'][:120]}...")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -320,14 +367,15 @@ print("EDA SUMMARY")
 print("=" * 60)
 print(f"""
 Datasets:
+  EYD (Formal):      {len(eyd_df):,} samples (avg {eyd_df['word_count'].mean():.0f} words/sample)
   Alay/Slang:        {len(alay_df):,} samples (avg {alay_df['word_count'].mean():.0f} words/sample)
   Jaksel/Indonglish: {len(jaksel_df):,} samples (avg {jaksel_df['word_count'].mean():.0f} words/sample)
-  EYD/Baku:          Pending (template created)
 
 Key Findings:
-  - Alay text is typically shorter social media comments
+  - EYD text is formal literary prose with longer sentences
+  - Alay text is typically shorter social media comments with slang
   - Jaksel text contains English-Indonesian code-switching
-  - Avg English word ratio in Jaksel: {jaksel_df['eng_ratio'].mean():.1%}
+  - Avg English word ratio — EYD: {eyd_df['eng_ratio'].mean():.1%}, Alay: {alay_df['eng_ratio'].mean():.1%}, Jaksel: {jaksel_df['eng_ratio'].mean():.1%}
   - Most common slang category: {cat1_counts.index[0]} ({cat1_counts.iloc[0]} occurrences)
   - Total slang categories: {categories_df['category1'].nunique()}
 

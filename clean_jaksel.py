@@ -1,10 +1,16 @@
 """
 Clean the dataset.csv (Jaksel/Indonglish dataset)
+Source: https://github.com/laksmitawidya/indonglish-dataset
 Contains tweets with Indonesian-English code-switching
 """
 
 import pandas as pd
 import re
+import os
+
+SOURCE_DIR = 'source-data'
+OUTPUT_DIR = 'cleaned-data'
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def clean_text(text):
     """Clean a single text string."""
@@ -28,7 +34,7 @@ def main():
     print("=" * 60)
 
     # Load raw data
-    df = pd.read_csv('dataset.csv')
+    df = pd.read_csv(os.path.join(SOURCE_DIR, 'dataset.csv'))
     print(f"\nRaw dataset shape: {df.shape}")
     print(f"Columns: {list(df.columns)}")
     print(f"\nSentiment label distribution:")
@@ -60,8 +66,8 @@ def main():
     jaksel_df = jaksel_df.reset_index(drop=True)
 
     # Save cleaned dataset
-    jaksel_df.to_csv('jaksel_cleaned.csv', index=False)
-    print(f"\nSaved: jaksel_cleaned.csv ({len(jaksel_df)} rows)")
+    jaksel_df.to_csv(os.path.join(OUTPUT_DIR, 'jaksel_cleaned.csv'), index=False)
+    print(f"\nSaved: {OUTPUT_DIR}/jaksel_cleaned.csv ({len(jaksel_df)} rows)")
     
     # --- Stats ---
     print("\n--- Quick Stats ---")
