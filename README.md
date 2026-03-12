@@ -7,7 +7,6 @@ A text classification system that categorizes Indonesian text into **3 socioling
 | Class | Description | Source |
 |-------|-------------|--------|
 | **EYD (Formal)** | Formal Indonesian following Ejaan Yang Disempurnakan rules | [Tere Liye — Tentang Kamu](https://archive.org/stream/tentangkamu/TENTANG%20KAMU_djvu.txt) |
-| **EYD (Formal)** | Formal Indonesian following Ejaan Yang Disempurnakan rules | [Tere Liye — Tentang Kamu](https://archive.org/stream/tentangkamu/TENTANG%20KAMU_djvu.txt) |
 | **Alay/Slang** | Informal Indonesian internet slang (e.g., "bgt", "gk", "kk") | [kamus-alay](https://github.com/nasalsabila/kamus-alay) |
 | **Jaksel (Indonglish)** | Indonesian-English code-switching ("literally gue tuh...") | [indonglish-dataset](https://github.com/laksmitawidya/indonglish-dataset) |
 
@@ -100,7 +99,7 @@ We adapted the GPT-2 classification finetuning workflow from *Build a Large Lang
 ### 0. Download Pretrained Models & Weights
 Because the model weights are too large for GitHub (over 100MB), you need to download them manually before running the app.
 
-1. **Download the models** from this Google Drive link: `[YOUR_GOOGLE_DRIVE_LINK_HERE]`
+1. **Download the models** from this Google Drive link: [[Click me](https://drive.google.com/file/d/1n74P8OnIsTar6yC5rTQXQ0f2L34wcXDD/view?usp=sharing)]
 2. **Extract/Move the files** to the directory **one folder exactly above** this project root directory.
 
 Your folder structure should look like this:
