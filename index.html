@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCBI — Sociolinguistics Classifier Bahasa Indonesia</title>
+    <meta name="description" content="Classify Indonesian text as Alay (slang), EYD (formal), or Jaksel (Indonglish) using a finetuned language model.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #F4F1EC;
+            --surface: #FFFFFF;
+            --surface-alt: #FAF8F5;
+            --border: #E8E4DE;
+            --border-hover: #D4CFC7;
+            --text: #1A1A1A;
+            --text-secondary: #6B6560;
+            --text-muted: #9C9590;
+            --accent: #4A6CF7;
+            --accent-light: #EEF1FE;
+            --alay: #F97316;
+            --alay-bg: #FFF7ED;
+            --alay-border: #FED7AA;
+            --eyd: #10B981;
+            --eyd-bg: #ECFDF5;
+            --eyd-border: #A7F3D0;
+            --jaksel: #8B5CF6;
+            --jaksel-bg: #F5F3FF;
+            --jaksel-border: #C4B5FD;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.03);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+            --radius: 20px;
+            --radius-sm: 14px;
+            --radius-xs: 10px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* ── Header ─────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        /* ── Card ───────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 20px;
+        }
+
+        /* ── Classifier Section ─────────────────── */
+        .classifier-section {
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 20px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--surface-alt);
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .text-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .text-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.1);
+            background: var(--surface);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--radius-xs);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #3B5DE7;
+            box-shadow: 0 4px 16px rgba(74, 108, 247, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface-alt);
+            border-color: var(--border-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ── Result ─────────────────────────────── */
+        .result-area {
+            margin-top: 24px;
+            display: none;
+            animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .result-area.visible {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            border: 2px solid;
+        }
+
+        .result-card.alay  { background: var(--alay-bg);  border-color: var(--alay-border); }
+        .result-card.eyd   { background: var(--eyd-bg);   border-color: var(--eyd-border); }
+        .result-card.jaksel{ background: var(--jaksel-bg); border-color: var(--jaksel-border); }
+
+        .result-label-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .result-label-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .result-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .result-badge.alay  { background: var(--alay); }
+        .result-badge.eyd   { background: var(--eyd); }
+        .result-badge.jaksel{ background: var(--jaksel); }
+
+        .confidence-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .conf-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .conf-label {
+            font-size: 13px;
+            font-weight: 600;
+            width: 56px;
+            text-align: right;
+            color: var(--text-secondary);
+        }
+
+        .conf-track {
+            flex: 1;
+            height: 10px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .conf-fill {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .conf-fill.alay  { background: var(--alay); }
+        .conf-fill.eyd   { background: var(--eyd); }
+        .conf-fill.jaksel{ background: var(--jaksel); }
+
+        .conf-value {
+            font-size: 13px;
+            font-weight: 600;
+            width: 48px;
+            color: var(--text);
+        }
+
+        /* ── Stats Row ──────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value.train  { color: var(--accent); }
+        .stat-value.val    { color: var(--eyd); }
+        .stat-value.test   { color: var(--jaksel); }
+        .stat-value.epochs { color: var(--alay); }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        /* ── Charts ─────────────────────────────── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 700px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 { font-size: 28px; }
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 280px;
+        }
+
+        /* ── Loading Spinner ────────────────────── */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Sample chips ───────────────────────── */
+        .samples-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .sample-chip {
+            padding: 6px 14px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+
+        .sample-chip:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .section-gap { margin-bottom: 32px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                NLP Classification
+            </div>
+            <h1>Sociolinguistics Classifier<br>Bahasa Indonesia</h1>
+            <p>Classify Indonesian text into <strong>Alay</strong> (slang), <strong>EYD</strong> (formal), or <strong>Jaksel</strong> (Indonglish) using a finetuned language model.</p>
+        </header>
+
+        <!-- Classifier -->
+        <section class="classifier-section">
+            <div class="card">
+                <div class="card-title">Classify Text</div>
+                <div class="input-group">
+                    <textarea id="textInput" class="text-input" placeholder="Ketik atau paste teks Indonesia di sini...&#10;&#10;Contoh: &quot;Literally gue tuh lagi overthinking banget deh&quot;"></textarea>
+                </div>
+                <div class="samples-row">
+                    <span class="sample-chip" onclick="fillSample(this)" data-text="gw bgt lah, emg gk bsa tidur smpe pagi">gw bgt lah, emg gk bsa tidur...</span>
+                    <span class="sample-chip" onclick="fillSample(this)" data-text="Pendidikan merupakan fondasi utama dalam pembangunan karakter bangsa.">Pendidikan merupakan fondasi...</span>
+                    <span class="sample-chip" onclick="fillSample(this)" data-text="Literally gue tuh lagi overthinking banget deh about this whole situation">Literally gue tuh lagi overthinking...</span>
+                </div>
+                <div class="btn-row">
+                    <button id="classifyBtn" class="btn btn-primary" onclick="classify()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Classify
+                    </button>
+                    <button class="btn btn-ghost" onclick="clearInput()">Clear</button>
+                </div>
+
+                <!-- Result -->
+                <div id="resultArea" class="result-area">
+                    <div id="resultCard" class="result-card">
+                        <div class="result-label-row">
+                            <span class="result-label-text">Predicted class:</span>
+                            <span id="resultBadge" class="result-badge"></span>
+                        </div>
+                        <div class="confidence-bars">
+                            <div class="conf-row">
+                                <span class="conf-label">Alay</span>
+                                <div class="conf-track"><div id="confAlay" class="conf-fill alay" style="width:0%"></div></div>
+                                <span id="confAlayVal" class="conf-value">0%</span>
+                            </div>
+                            <div class="conf-row">
+                                <span class="conf-label">EYD</span>
+                                <div class="conf-track"><div id="confEyd" class="conf-fill eyd" style="width:0%"></div></div>
+                                <span id="confEydVal" class="conf-value">0%</span>
+                            </div>
+                            <div class="conf-row">
+                                <span class="conf-label">Jaksel</span>
+                                <div class="conf-track"><div id="confJaksel" class="conf-fill jaksel" style="width:0%"></div></div>
+                                <span id="confJakselVal" class="conf-value">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-value train" id="statTrain">—</div>
+                <div class="stat-label">Train Accuracy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value val" id="statVal">—</div>
+                <div class="stat-label">Validation Accuracy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value test" id="statTest">—</div>
+                <div class="stat-label">Test Accuracy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value epochs" id="statEpochs">—</div>
+                <div class="stat-label">Epochs</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="card">
+                <div class="card-title">Training & Validation Loss</div>
+                <div class="chart-wrapper">
+                    <canvas id="lossChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Accuracy per Epoch</div>
+                <div class="chart-wrapper">
+                    <canvas id="accChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Classify ───────────────────────────────
+        async function classify() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('classifyBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Classifying...';
+
+            try {
+                const res = await fetch('/classify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text})
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                showResult(data);
+            } catch (e) {
+                alert('Error connecting to server. Make sure server.py is running.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Classify`;
+            }
+        }
+
+        function showResult(data) {
+            const area = document.getElementById('resultArea');
+            const card = document.getElementById('resultCard');
+            const badge = document.getElementById('resultBadge');
+
+            // Reset classes
+            card.className = 'result-card ' + data.label;
+            badge.className = 'result-badge ' + data.label;
+
+            const labelNames = {alay: 'Alay', eyd: 'EYD', jaksel: 'Jaksel'};
+            const labelIcons = {alay: '🗣️', eyd: '📝', jaksel: '🌏'};
+            badge.textContent = labelIcons[data.label] + ' ' + labelNames[data.label];
+
+            // Confidence bars
+            const conf = data.confidence;
+            animateBar('confAlay',  'confAlayVal',  conf.alay || 0);
+            animateBar('confEyd',   'confEydVal',   conf.eyd || 0);
+            animateBar('confJaksel','confJakselVal', conf.jaksel || 0);
+
+            area.classList.remove('visible');
+            // Force reflow for re-animation
+            void area.offsetHeight;
+            area.classList.add('visible');
+        }
+
+        function animateBar(barId, valId, value) {
+            const pct = (value * 100).toFixed(1);
+            document.getElementById(barId).style.width = pct + '%';
+            document.getElementById(valId).textContent = pct + '%';
+        }
+
+        function fillSample(el) {
+            document.getElementById('textInput').value = el.dataset.text;
+            classify();
+        }
+
+        function clearInput() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('resultArea').classList.remove('visible');
+        }
+
+        // ── Enter key ──────────────────────────────
+        document.getElementById('textInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                classify();
+            }
+        });
+
+        // ── Metrics Charts ─────────────────────────
+        async function loadMetrics() {
+            try {
+                const res = await fetch('/metrics');
+                const m = await res.json();
+
+                // Stats
+                document.getElementById('statTrain').textContent = (m.train_accuracy_final * 100).toFixed(1) + '%';
+                document.getElementById('statVal').textContent   = (m.val_accuracy_final * 100).toFixed(1) + '%';
+                document.getElementById('statTest').textContent  = (m.test_accuracy_final * 100).toFixed(1) + '%';
+                document.getElementById('statEpochs').textContent = m.num_epochs;
+
+                // Loss chart
+                const lossSteps = m.train_losses.map((_, i) => i + 1);
+                new Chart(document.getElementById('lossChart'), {
+                    type: 'line',
+                    data: {
+                        labels: lossSteps,
+                        datasets: [
+                            {
+                                label: 'Train Loss',
+                                data: m.train_losses,
+                                borderColor: '#4A6CF7',
+                                backgroundColor: 'rgba(74,108,247,0.08)',
+                                fill: true,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.3,
+                            },
+                            {
+                                label: 'Val Loss',
+                                data: m.val_losses,
+                                borderColor: '#F97316',
+                                backgroundColor: 'rgba(249,115,22,0.06)',
+                                fill: true,
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.3,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: {
+                            legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true, font: { family: 'Inter', size: 12 } } },
+                            tooltip: { backgroundColor: '#1A1A1A', titleFont: { family: 'Inter' }, bodyFont: { family: 'Inter' }, cornerRadius: 8, padding: 10 }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'Step (every 50)', font: { family: 'Inter', size: 11 } }, grid: { display: false }, ticks: { maxTicksLimit: 10, font: { family: 'Inter', size: 10 } } },
+                            y: { title: { display: true, text: 'Loss', font: { family: 'Inter', size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'Inter', size: 10 } } }
+                        }
+                    }
+                });
+
+                // Accuracy chart
+                const epochLabels = m.train_accs.map((_, i) => 'Epoch ' + (i + 1));
+                new Chart(document.getElementById('accChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: epochLabels,
+                        datasets: [
+                            {
+                                label: 'Train Acc',
+                                data: m.train_accs.map(v => (v * 100).toFixed(1)),
+                                backgroundColor: 'rgba(74,108,247,0.7)',
+                                borderRadius: 6,
+                                borderSkipped: false,
+                            },
+                            {
+                                label: 'Val Acc',
+                                data: m.val_accs.map(v => (v * 100).toFixed(1)),
+                                backgroundColor: 'rgba(16,185,129,0.7)',
+                                borderRadius: 6,
+                                borderSkipped: false,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true, font: { family: 'Inter', size: 12 } } },
+                            tooltip: { backgroundColor: '#1A1A1A', titleFont: { family: 'Inter' }, bodyFont: { family: 'Inter' }, cornerRadius: 8, padding: 10, callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + '%' } }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } },
+                            y: { min: 80, max: 100, title: { display: true, text: 'Accuracy (%)', font: { family: 'Inter', size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'Inter', size: 10 }, callback: v => v + '%' } }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error('Failed to load metrics:', e);
+            }
+        }
+
+        loadMetrics();
+    </script>
+</body>
+</html>
