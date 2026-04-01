@@ -59,12 +59,19 @@ def classify():
     vec = vectorizer.transform([text])
     prediction = model.predict(vec)[0]
 
-    # Get decision function scores for confidence
+    # Get confidence scores
     try:
-        decision = model.decision_function(vec)[0]
-        # Convert decision scores to pseudo-probabilities via softmax
-        exp_scores = np.exp(decision - np.max(decision))
-        probabilities = exp_scores / exp_scores.sum()
+        if hasattr(model, "predict_proba"):
+            probabilities = model.predict_proba(vec)[0]
+        else:
+            # Model like LinearSVC uses decision_function
+            decision = model.decision_function(vec)[0]
+            # Convert decision scores to pseudo-probabilities via softmax
+            # We multiply by 3.0 to artificially sharpen the confidence margin
+            decision_scaled = decision * 3.0
+            exp_scores = np.exp(decision_scaled - np.max(decision_scaled))
+            probabilities = exp_scores / exp_scores.sum()
+            
         confidence = {cls: round(float(prob), 4) for cls, prob in zip(classes, probabilities)}
     except Exception:
         confidence = {cls: (1.0 if cls == prediction else 0.0) for cls in classes}
