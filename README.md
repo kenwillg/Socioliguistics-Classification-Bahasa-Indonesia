@@ -27,32 +27,32 @@ A text classification system that categorizes Indonesian text into **3 socioling
 ├── clean_jaksel.py                        # Jaksel data cleaning script
 ├── eda.py                                 # Exploratory Data Analysis script
 ├── eda_output/                            # EDA visualization outputs
-├── model.py                               # Classification model training
-├── sociolinguistics_model.pkl             # Trained model (best: SVM, 99.00%)
-├── ch06.ipynb                             # Reference notebook (Ch6 finetuning)
+├── ch06-SCBI.ipynb                        # GPT-2 classification finetuning
+├── previous_chapters.py                   # GPTModel architecture definitions
+├── server.py                              # Flask Web Server (GPT-2 inference)
 └── README.md                              # This file
 ```
+
+*(Note: `scbi_classifier.pth` must be placed exactly one folder above the root directory for inference).*
 
 ## Progress
 
 - [x] Dataset collection (EYD + Alay + Jaksel)
-- [x] Dataset collection (EYD + Alay + Jaksel)
 - [x] Data cleaning & preprocessing
 - [x] Exploratory Data Analysis (EDA)
-- [x] SVM Model training & evaluation
 - [x] GPT-2 classification finetuning (`ch06-SCBI.ipynb`)
-- [x] Interactive Web App UI
+- [x] Interactive Web App UI (GPT-2 PyTorch Backend)
 
 ## Web App Classifier
 
-The project includes an interactive web application that serves the trained sociolinguistics model via a Flask backend and a modern HTML frontend.
+The project includes an interactive web application that serves our fine-tuned **GPT-2 Small architecture** via a Flask backend and a modern HTML frontend.
 
 ![SCBI Web App](docs/app_screenshot.png)
 
 ### Key Features
-- **Real-time Classification**: Predicts if text is Alay, EYD, or Jaksel with confidence scores
-- **Sample Inputs**: Test the model instantly using pre-configured sample texts
-- **Training Metrics**: Visualizes the loss curve and accuracy charts from the GPT-2 finetuning process
+- **Real-time GPT-2 Inference**: Predicts if text is Alay, EYD, or Jaksel by passing tokens through the fine-tuned Transformer with confidence scores.
+- **Sample Inputs**: Test the model instantly using pre-configured sample texts.
+- **Training Metrics**: Visualizes the loss curve and accuracy charts from the GPT-2 finetuning process.
 
 ![Training Metrics](docs/metrics_screenshot.png)
 
@@ -65,33 +65,13 @@ The project includes an interactive web application that serves the trained soci
 | Avg word count | ~11 | ~12 | ~18 |
 | Top slang category | — | abreviasi (7,162) | — |
 | English word ratio | Low | Low | ~24.4% avg |
-| Metric | EYD (Formal) | Alay/Slang | Jaksel |
-|--------|-------------|-----------|--------|
-| Samples | 9,118 | 4,877 | 5,065 |
-| Avg text length | ~70 chars | ~72 chars | ~105 chars |
-| Avg word count | ~11 | ~12 | ~18 |
-| Top slang category | — | abreviasi (7,162) | — |
-| English word ratio | Low | Low | ~24.4% avg |
 
 ## Model Results
-
-### SVM Baseline
-Best baseline model: **Linear SVM** with char n-gram TF-IDF (2-5 grams)
-
-| Model | Accuracy |
-|-------|----------|
-| **Linear SVM** | **99.00%** ★ |
-| Logistic Regression | 98.01% |
-| Multinomial NB | 94.64% |
-| Word-level LR | 96.39% |
-| **Linear SVM** | **99.00%** ★ |
-| Logistic Regression | 98.01% |
-| Multinomial NB | 94.64% |
-| Word-level LR | 96.39% |
 
 ### GPT-2 Finetuning (`ch06-SCBI.ipynb`)
 We adapted the GPT-2 classification finetuning workflow from *Build a Large Language Model From Scratch* (Ch 6) for our 3-class sociolinguistics task.
 - Base model: GPT-2 Small (124M)
+- Tokenization: `tiktoken` (GPT-2 BPE)
 - Final Training Accuracy: **93.3%**
 - Final Validation Accuracy: **92.5%**
 - Final Test Accuracy: **91.9%**
@@ -106,7 +86,6 @@ Your folder structure should look like this:
 ```
 ├── [Your Parent Folder]/
 │   ├── scbi_classifier.pth        # GPT-2 Finetuned Weights
-│   ├── sociolinguistics_model.pkl # SVM Baseline Model
 │   ├── gpt2/                      # OpenAI GPT-2 Base Weights
 │   └── Sociolinguistics-Classification-Bahasa-Indonesia/ (This repo)
 │       ├── server.py
@@ -114,7 +93,7 @@ Your folder structure should look like this:
 │       └── ...
 ```
 
-### 1. Data Processing & Baseline Models
+### 1. Data Processing
 ```bash
 # Clean datasets
 python clean_eyd.py
@@ -123,9 +102,6 @@ python clean_jaksel.py
 
 # Run EDA
 python eda.py
-
-# Optional: Train SVM baseline model locally
-python model.py
 ```
 
 ### 2. Large Language Model Finetuning
@@ -135,8 +111,12 @@ jupyter notebook ch06-SCBI.ipynb
 ```
 
 ### 3. Run the Web App
-The interactive web app serves the baseline model and visualizes the LLM training metrics. Make sure you have downloaded the models and placed them in the parent folder as explained in Step 0.
+The interactive web app serves the fine-tuned GPT-2 model and visualizes the LLM training metrics. Make sure you have downloaded the `.pth` weights and placed them in the parent folder as explained in Step 0.
+
 ```bash
+# Ensure dependencies are installed
+python -m pip install torch tiktoken flask flask-cors
+
 # Start the Flask server
 python server.py
 
